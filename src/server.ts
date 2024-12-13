@@ -24,7 +24,7 @@ const typeDefs = `#graphql
     products: [Product],
     getProductById(id: ID): Product,
     getProductTotalPrice(id: ID): Float # multiply product price with its qty
-    getTotalQtyOfProducts(): Int # sum of all qty of all products
+    getTotalQtyOfProducts: Int # sum of all qty of all products
   }
 
   type Mutation {
@@ -38,14 +38,45 @@ const typeDefs = `#graphql
 const resolvers = {
   Query: {
     products: () => products,
-    getProductById: () => {},
-    getProductTotalPrice: () => {},
-    getTotalQtyOfProducts: () => {}
+    getProductById: (_: unknown, {id}: { id: string }) => {
+      return products.find(product => product.id === id)
+    },
+    getProductTotalPrice: (_: unknown, {id}: { id: string }) => {
+      const oneProduct = products.find(product => product.id === id)
+      return oneProduct ? oneProduct.price * oneProduct.qty : 0
+    },
+    getTotalQtyOfProducts: () => {
+      return products.reduce((total, product) => total + product.qty, 0)
+    }
   },
   Mutation: {
-    addProduct: () => {},
-    updateProduct: () => {},
-    deleteProduct: () => {}
+    addProduct: (_: unknown, product: { productName: string, price: number, qty: number }) => {
+      const newProduct = {
+        id: uuidv4(),
+        productName: product.productName,
+        price:product.price,
+        qty: product.qty
+      }
+      products.push(newProduct)
+      return newProduct
+    },
+    updateProduct: (_: unknown, product: { id: string, productName?: string, price?: number, qty?: number }) => {
+      const productId = products.findIndex(product => product.id === product.id)
+      products[productId] = {
+        ...products[productId],
+        ...(product.productName && { productName: product.productName }),
+        ...(product.price !== undefined && { price: product.price }),
+        ...(product.qty !== undefined && { qty: product.qty })
+      }
+
+      return products[productId]
+    },
+    deleteProduct: (_: unknown, {id}: { id: string }) => {
+      const productIndex = products.findIndex(product => product.id === id)
+      const deletedProduct = products[productIndex]
+      products.splice(productIndex, 1)
+      return deletedProduct
+    }
   },
 }
 
